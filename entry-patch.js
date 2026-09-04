@@ -3,6 +3,19 @@
    Ajustes de entrada, A1 y comportamiento de enfermeras.
    ========================================================= */
 
+/* Corrección del evento B9: usa sus imágenes propias. */
+const b9Event=B_EVENT_POOL.find(d=>d.sourceId==="B9");
+if(b9Event){
+  b9Event.card="B9E.png";
+  b9Event.finalCard="B9F.png";
+}
+Object.values(DEFINITIONS).forEach(d=>{
+  if(d&&d.sourceId==="B9"){
+    d.card="B9E.png";
+    d.finalCard="B9F.png";
+  }
+});
+
 /* Desde la entrada solo se puede comenzar por B5, B7 o B8. */
 GRAPH.ENTRADA=["B5","B7","B8"];
 
