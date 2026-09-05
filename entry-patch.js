@@ -16,6 +16,26 @@ Object.values(DEFINITIONS).forEach(d=>{
   }
 });
 
+/*
+  Corrección del evento aleatorio B8 (Enfermera de soporte).
+  Antes estaba llamando por error A13E/A13F, que corresponden a la
+  Enfermera Jefe. B8 debe usar exclusivamente B8E/B8F.
+  Como los eventos B son aleatorios, este evento puede aparecer físicamente
+  en cualquier habitación B (por ejemplo B2), pero siempre mostrará la
+  enfermera de soporte correcta.
+*/
+const b8Event=B_EVENT_POOL.find(d=>d.sourceId==="B8");
+if(b8Event){
+  b8Event.card="B8E.png";
+  b8Event.finalCard="B8F.png";
+}
+Object.values(DEFINITIONS).forEach(d=>{
+  if(d&&d.sourceId==="B8"){
+    d.card="B8E.png";
+    d.finalCard="B8F.png";
+  }
+});
+
 /* Desde la entrada solo se puede comenzar por B5, B7 o B8. */
 GRAPH.ENTRADA=["B5","B7","B8"];
 
