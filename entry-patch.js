@@ -18,11 +18,8 @@ Object.values(DEFINITIONS).forEach(d=>{
 
 /*
   Corrección del evento aleatorio B8 (Enfermera de soporte).
-  Antes estaba llamando por error A13E/A13F, que corresponden a la
-  Enfermera Jefe. B8 debe usar exclusivamente B8E/B8F.
-  Como los eventos B son aleatorios, este evento puede aparecer físicamente
-  en cualquier habitación B (por ejemplo B2), pero siempre mostrará la
-  enfermera de soporte correcta.
+  B8 usa exclusivamente B8E/B8F. Como los eventos B son aleatorios,
+  este evento puede aparecer físicamente en cualquier habitación B.
 */
 const b8Event=B_EVENT_POOL.find(d=>d.sourceId==="B8");
 if(b8Event){
@@ -147,18 +144,134 @@ gunButton.addEventListener("click",function(event){
 },true);
 
 /*
-  Manos de la enfermera: ocupa la misma zona donde normalmente está el puño.
-  Sale al mapa sin entrar en la habitación ni completar el encuentro.
-  Como la sala sigue incompleta, se puede regresar después y la enfermera
-  volverá a mostrarse.
+  Manos de la enfermera: sale al mapa sin entrar ni completar el encuentro.
+  Además se recuerda que el jugador decidió dejar a esa enfermera para después.
+  Desde ese momento podrá atravesar su estancia sin que el evento sea obligatorio.
 */
 fistButton.addEventListener("click",function(event){
   if(!["healerHealth","healerEnergy"].includes(state.encounterMode))return;
 
   event.preventDefault();
   event.stopImmediatePropagation();
+
+  const room=state.pendingRoom;
+  if(room&&state.rooms[room])state.rooms[room].nurseSkipped=true;
   closeUnresolvedToMap();
 },true);
 
 /* El botón especial anterior queda fuera de uso para las enfermeras. */
 specialActionButton.style.display="none";
+
+/* =========================================================
+   ENFERMERA DEJADA PARA DESPUÉS
+   Si el jugador ya rechazó a una enfermera con el icono de manos,
+   al volver a su estancia aparece un letrero con dos opciones:
+   ENTRAR AL ENCUENTRO o CONTINUAR por la habitación.
+   ========================================================= */
+function isSupportNurse(room){
+  const d=definitionFor(room);
+  return !!d&&(d.type==="healerHealth"||d.type==="healerEnergy");
+}
+
+const nursePassOverlay=document.createElement("div");
+nursePassOverlay.id="nursePassOverlay";
+nursePassOverlay.innerHTML=`
+  <div id="nursePassPanel">
+    <div id="nursePassTitle">ENFERMERA DE SOPORTE</div>
+    <div id="nursePassText">La enfermera sigue aquí. ¿Quieres entrar al encuentro o continuar por la estancia?</div>
+    <div id="nursePassActions">
+      <button id="nurseEnterButton" type="button">ENTRAR AL ENCUENTRO</button>
+      <button id="nurseContinueButton" type="button">CONTINUAR</button>
+    </div>
+  </div>`;
+document.body.appendChild(nursePassOverlay);
+
+const nurseEnterButton=document.getElementById("nurseEnterButton");
+const nurseContinueButton=document.getElementById("nurseContinueButton");
+let nursePassRoom=null;
+let nursePassNeedsMovement=false;
+
+function hideNursePassChoice(){
+  nursePassOverlay.classList.remove("show");
+  nursePassRoom=null;
+  nursePassNeedsMovement=false;
+}
+
+function showNursePassChoice(room,needsMovement=true){
+  nursePassRoom=room;
+  nursePassNeedsMovement=needsMovement;
+  nursePassOverlay.classList.add("show");
+}
+
+function payNurseRoomMovement(room){
+  if(!nursePassNeedsMovement)return true;
+  const cost=getMovementOxygenCost(room);
+  return cost<=0||consumeOxygen(cost);
+}
+
+nurseEnterButton.addEventListener("click",()=>{
+  const room=nursePassRoom;
+  if(!room)return;
+  if(!payNurseRoomMovement(room)){hideNursePassChoice();return}
+  hideNursePassChoice();
+  openEncounter(room);
+});
+
+nurseContinueButton.addEventListener("click",()=>{
+  const room=nursePassRoom;
+  if(!room)return;
+
+  if(nursePassNeedsMovement){
+    if(!payNurseRoomMovement(room)){hideNursePassChoice();return}
+    turnOffScanner();
+    moveToRoom(room);
+  }
+
+  hideNursePassChoice();
+});
+
+/*
+  Reemplaza el manejo de clic en habitaciones para incorporar la elección
+  de atravesar una enfermera previamente rechazada.
+*/
+handleRoomClick=function(room){
+  if(state.gameLocked||state.ended||encounter.classList.contains("show")||nursePassOverlay.classList.contains("show"))return;
+
+  /* Si Nova ya está sobre una enfermera pendiente, puede tocar la estancia
+     y decidir si quiere entrar al encuentro sin pagar oxígeno adicional. */
+  if(room===state.currentRoom){
+    if(isSupportNurse(room)&&!state.rooms[room].completed&&state.rooms[room].nurseSkipped){
+      showNursePassChoice(room,false);
+      return;
+    }
+    showMessage("ESTÁS EN ESTA SALA");
+    return;
+  }
+
+  if(!isAdjacent(room)){
+    showMessage("SOLO PUEDES IR A UNA SALA ALEDAÑA");
+    return;
+  }
+
+  if(state.scannerActive&&!state.rooms[room].revealed){
+    revealRoom(room);
+    return;
+  }
+
+  /* Una enfermera que ya fue rechazada deja de bloquear el camino. */
+  if(isSupportNurse(room)&&!state.rooms[room].completed&&state.rooms[room].nurseSkipped){
+    showNursePassChoice(room,true);
+    return;
+  }
+
+  const cost=getMovementOxygenCost(room);
+  if(cost>0&&!consumeOxygen(cost))return;
+
+  if(state.rooms[room].completed){
+    turnOffScanner();
+    moveToRoom(room);
+    return;
+  }
+
+  openEncounter(room);
+};
