@@ -90,6 +90,78 @@
   color:#fff;
 }
 
+/* Escena previa al letrero de MISIÓN CUMPLIDA */
+#missionEpilogueOverlay{
+  position:fixed;
+  inset:0;
+  z-index:285;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:14px;
+  background:rgba(3,5,12,.95);
+}
+
+#missionEpilogueOverlay.show{
+  display:flex;
+}
+
+#missionEpiloguePanel{
+  position:relative;
+  width:min(92vw,680px);
+  max-height:96vh;
+  overflow:auto;
+  padding:0 0 20px;
+  border:4px solid #ff2fb3;
+  border-radius:22px;
+  background:rgba(17,20,25,.98);
+  color:#fff;
+  text-align:center;
+  box-shadow:0 0 36px rgba(255,47,179,.48);
+}
+
+#missionEpilogueImage{
+  display:block;
+  width:100%;
+  height:auto;
+  max-height:68vh;
+  object-fit:contain;
+  border-radius:17px 17px 0 0;
+}
+
+#missionEpilogueText{
+  padding:20px 22px 10px;
+  color:#fff;
+  font-size:clamp(18px,4vw,29px);
+  font-weight:850;
+  line-height:1.28;
+}
+
+#missionEpilogueContinue{
+  margin-top:12px;
+  min-width:170px;
+  padding:12px 24px;
+  border:2px solid #ff8bd8;
+  border-radius:14px;
+  background:#d91491;
+  color:#fff;
+  font-size:18px;
+  font-weight:1000;
+  cursor:pointer;
+  box-shadow:0 0 16px rgba(255,47,179,.42);
+}
+
+/* El letrero final de misión cumplida también debe ser fucsia. */
+#endOverlay.mission #endPanel{
+  border-color:#ff2fb3;
+  box-shadow:0 0 36px rgba(255,47,179,.48);
+}
+
+#endOverlay.mission #endTitle{
+  color:#ff66c9;
+}
+
 @media(max-width:500px){
   #nurseEnterButton,#nurseContinueButton{width:100%;min-width:0}
+  #missionEpilogueText{padding-left:16px;padding-right:16px}
 }
